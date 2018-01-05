@@ -115,7 +115,6 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
                                         }
                                     }
                                 }
-
                             }
                         }
                     }
@@ -180,6 +179,9 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
         public static void AccountDocumentTableDataMigration()
         {
             int index = 0;
+            string Name;
+            string FileGUID; 
+            string CreateDate; 
 
             try
             {
@@ -205,28 +207,35 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
                                         {
                                             while (reader1.Read())
                                             {
-                                                datas = "";
+                                                Name = "";
+                                                FileGUID = "";
+                                                CreateDate = "";
+
                                                 for (int i = 0; i < reader1.FieldCount; i++)
                                                 {
                                                     data = reader1.GetValue(i);
-                                                    if (datas != "")
-                                                        datas += ",";
-                                                    if (data.GetType() == typeof(DateTime))
+                                                    if (i == 0)
+                                                        Name += '"' + Convert.ToString(data) + '"';
+                                                    if (i == 1)
+                                                        FileGUID += Convert.ToString(data);
+                                                    if(i == 2)
                                                     {
-                                                        // Changing the format of date
                                                         var date = (DateTime)data;
-                                                        datas += '"' + date.ToString("yyyy-MM-dd hh:mm:ss") + '"';
+                                                        CreateDate += '"' + date.ToString("yyyy-MM-dd hh:mm:ss") + '"';
                                                     }
-                                                    else
-                                                    {
-                                                        datas += '"' + Convert.ToString(data) + '"';
-                                                    }
+                                                        
                                                 }
-                                                UploadUncategorizedImageInAWS(MasterDBClientId, ClientId);
-                                                var transactionType = '"' + AppSettingsUtil.UNCATEGORIZED_INVOICE + '"';
-                                                var invoiceStatus = (int)AppSettingsUtil.SCANNEDINVOICE_STATUS.Pending;
-                                                var q = "INSERT INTO scannedinvoice(GUID,FileGuid,ScannedDate,TransactionType,IsUploadedFromApp,Status) Values(" + datas + "," + transactionType + "," + "false" + "," + invoiceStatus + "); ";
-                                                RunQueryClientDatabase(q);
+                                                var count = UploadUncategorizedImageInAWS(MasterDBClientId, ClientId, Name, FileGUID, CreateDate);
+                                                if (count == 0)
+                                                {
+                                                    var transactionTypeforScannedInvoice = '"' + AppSettingsUtil.UNCATEGORIZED_INVOICE + '"';
+                                                    var invoiceStatus = (int)AppSettingsUtil.SCANNEDINVOICE_STATUS.Pending;
+                                                    var fileGuid = '"' + FileGUID + '"';
+                                                    var q = "INSERT INTO scannedinvoice(GUID,FileGuid,ScannedDate,TransactionType,IsUploadedFromApp,Status) Values(" + Name + "," + fileGuid + "," + CreateDate + "," + transactionTypeforScannedInvoice + "," + "false" + "," + invoiceStatus + "); ";
+                                                    RunQueryClientDatabase(q);
+                                                    string message = "This image is not present in the folder containing images for vataccountant --- " + Name;
+                                                    Program.LoggingForImagesNotPresentInFolder(message);
+                                                }
                                             }
                                         }
                                     }
@@ -246,6 +255,9 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
         public static void AccountDocumentTableDataMigrationForRecordTable()
         {
             int index = 0;
+            string Name;
+            string FileGUID;
+            string CreateDate;
 
             try
             {
@@ -278,18 +290,23 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
                                         {
                                             while (reader1.Read())
                                             {
-                                                datas = "";
                                                 count = 0;
+                                                Name = "";
+                                                FileGUID = "";
+                                                CreateDate = "";
+
                                                 for (int i = 0; i < reader1.FieldCount; i++)
                                                 {
                                                     data = reader1.GetValue(i);
-                                                    if (datas != "")
-                                                        datas += ",";
-                                                    if (data.GetType() == typeof(DateTime))
+                                                    if (i == 0)
+                                                        Name += '"' + Convert.ToString(data) + '"';
+                                                    if (i == 1)
+                                                        FileGUID += Convert.ToString(data);
+                                                    if (i == 2)
                                                     {
                                                         // Changing the format of date
                                                         var date = (DateTime)data;
-                                                        datas += '"' + date.ToString("yyyy-MM-dd hh:mm:ss") + '"';
+                                                        CreateDate += '"' + date.ToString("yyyy-MM-dd hh:mm:ss") + '"';
                                                         var sDate = date.ToString("yyyy-MM-dd");
                                                         string[] Words = sDate.Split(new char[] { '-' });
                                                         foreach (string Word in Words)
@@ -332,16 +349,18 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
                                                             if (count == 3) { Day = Word; }
                                                         }
                                                     }
-                                                    else
-                                                    {
-                                                        datas += '"' + Convert.ToString(data) + '"';
-                                                    }
                                                 }
-                                                UploadRecordImageInAWS(MasterDBClientId, ClientId, transferYear, transferMonth);
-                                                var transactionType = '"' + AppSettingsUtil.RECORD_TRANSACTION_TYPE_RECORD + '"';
-                                                var invoiceStatus = (int)AppSettingsUtil.SCANNEDINVOICE_STATUS.Pending;
-                                                var q = "INSERT INTO record(GUID,FileGuid,TransfreDate,TransactionType,TransferYear,TransferMonth,Status) Values(" + datas + "," + transactionType + "," + transferYear + "," + transferMonth + "," + invoiceStatus + "); ";
-                                                RunQueryClientDatabase(q);
+                                                var c = UploadRecordImageInAWS(MasterDBClientId, ClientId, Name, FileGUID, CreateDate, transferYear, transferMonth);
+                                                if (c == 0)
+                                                {
+                                                    var transactionType = '"' + AppSettingsUtil.RECORD_TRANSACTION_TYPE_RECORD + '"';
+                                                    var invoiceStatus = (int)AppSettingsUtil.SCANNEDINVOICE_STATUS.Pending;
+                                                    var fileGuid = '"' + FileGUID + '"';
+                                                    var q = "INSERT INTO record(GUID,FileGuid,TransfreDate,TransactionType,TransferYear,TransferMonth,Status) Values(" + Name + "," + fileGuid + "," + CreateDate + "," + transactionType + "," + transferYear + "," + transferMonth + "," + invoiceStatus + "); ";
+                                                    RunQueryClientDatabase(q);
+                                                    string message = "This image is not present in the folder containing images for vataccountant --- " + Name;
+                                                    Program.LoggingForImagesNotPresentInFolder(message);
+                                                }
                                             }
                                         }
                                     }
@@ -362,6 +381,10 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
         {
             int index = 0;
 
+            string Name;
+            string FileGUID;
+            string CreateDate;
+
             try
             {
                 GetMasterClientIdListForAccountDocument();
@@ -374,7 +397,6 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
                         {
                             while (reader.Read())
                             {
-                                datas = "";
                                 ClientId = reader.GetValue(0);
                                 MasterDBClientId = clientIdListMasterDatabase.ElementAt(index++);
                                 string transferYear = "";
@@ -393,18 +415,23 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
                                         {
                                             while (reader1.Read())
                                             {
-                                                datas = "";
                                                 count = 0;
+                                                Name = "";
+                                                FileGUID = "";
+                                                CreateDate = "";
+
                                                 for (int i = 0; i < reader1.FieldCount; i++)
                                                 {
                                                     data = reader1.GetValue(i);
-                                                    if (datas != "")
-                                                        datas += ",";
-                                                    if (data.GetType() == typeof(DateTime))
+                                                    if (i == 0)
+                                                        Name += '"' + Convert.ToString(data) + '"';
+                                                    if (i == 1)
+                                                        FileGUID += Convert.ToString(data);
+                                                    if (i == 2)
                                                     {
                                                         // Changing the format of date
                                                         var date = (DateTime)data;
-                                                        datas += '"' + date.ToString("yyyy-MM-dd hh:mm:ss") + '"';
+                                                        CreateDate += '"' + date.ToString("yyyy-MM-dd hh:mm:ss") + '"';
                                                         var sDate = date.ToString("yyyy-MM-dd");
                                                         string[] Words = sDate.Split(new char[] { '-' });
                                                         foreach (string Word in Words)
@@ -447,16 +474,18 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
                                                             if (count == 3) { Day = Word; }
                                                         }
                                                     }
-                                                    else
-                                                    {
-                                                        datas += '"' + Convert.ToString(data) + '"';
-                                                    }
                                                 }
-                                                UploadBankStatementImageInAWS(MasterDBClientId, ClientId, transferYear, transferMonth);
-                                                var transactionType = '"' + AppSettingsUtil.RECORD_TRANSACTION_TYPE_BANKSTATEMENT + '"';
-                                                var invoiceStatus = (int)AppSettingsUtil.SCANNEDINVOICE_STATUS.Pending;
-                                                var q = "INSERT INTO record(GUID,FileGuid,TransfreDate,TransactionType,TransferYear,TransferMonth,Status) Values(" + datas + "," + transactionType + "," + transferYear + "," + transferMonth + "," + invoiceStatus + "); ";
-                                                RunQueryClientDatabase(q);
+                                                var c = UploadBankStatementImageInAWS(MasterDBClientId, ClientId, Name, FileGUID, CreateDate, transferYear, transferMonth);
+                                                if (c == 0)
+                                                {
+                                                    var transactionType = '"' + AppSettingsUtil.RECORD_TRANSACTION_TYPE_BANKSTATEMENT + '"';
+                                                    var invoiceStatus = (int)AppSettingsUtil.SCANNEDINVOICE_STATUS.Pending;
+                                                    var fileGuid = '"' + FileGUID + '"';
+                                                    var q = "INSERT INTO record(GUID,FileGuid,TransfreDate,TransactionType,TransferYear,TransferMonth,Status) Values(" + Name + "," + fileGuid + "," + CreateDate + "," + transactionType + "," + transferYear + "," + transferMonth + "," + invoiceStatus + "); ";
+                                                    RunQueryClientDatabase(q);
+                                                    string message = "This image is not present in the folder containing images for vataccountant --- " + Name;
+                                                    Program.LoggingForImagesNotPresentInFolder(message);
+                                                }
                                             }
                                         }
                                     }
@@ -599,17 +628,17 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
             }
         }
 
-        public static void UploadUncategorizedImageInAWS(object clientID, object AccountId)
+        public static int UploadUncategorizedImageInAWS(object clientID, object AccountId, string Name, string FileGUID, string CreateDate)
         {
             AmazonS3Util amazonS3 = new AmazonS3Util();
             int clientId;
             string key = "";
             string transactionType = "";
-            int UploadedFileCount = 0;
-            int notUploadedFileCount = 0;
             clientId = (int)clientID;
             object VatNumber;
-            int AccountIdForImageUpload = (int)AccountId;
+            int UploadedImageCount = 0;
+            int notUploadedImageCount = 0;
+            object AccountIdForImageUpload = AccountId;
 
             try
             {
@@ -634,56 +663,67 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
                                     for (int i = 0; i < Files.Count; i++)
                                     {
                                         string fileName;
-
+                                        string nameWithoutExtension = Name.Replace(".tif", "");
                                         fileName = Path.GetFileName(Files[i]);
+                                        string fileNameWithoutExtension = '"' + Path.GetFileNameWithoutExtension(Files[i]) + '"';
 
-                                        //Get the file Extension
-                                        string fileExtenSion = Path.GetExtension(fileName);
-
-                                        FileStream fileStream = new FileStream(Files[i], FileMode.Open, FileAccess.Read);
-
-                                        if (fileExtenSion == ".jpeg" || fileExtenSion == ".jpg" || fileExtenSion == ".tif" || fileExtenSion == ".tiff")
+                                        if (fileNameWithoutExtension.Equals(nameWithoutExtension))
                                         {
-                                            byte[] buffer = new byte[fileStream.Length];
-                                            //Get the complete folder path and store the file inside it.  
 
-                                            if (fileExtenSion == ".tif" || fileExtenSion == ".tiff")
+                                            //Get the file Extension
+                                            string fileExtenSion = Path.GetExtension(fileName);
+
+                                            FileStream fileStream = new FileStream(Files[i], FileMode.Open, FileAccess.Read);
+
+                                            if (fileExtenSion == ".jpeg" || fileExtenSion == ".jpg" || fileExtenSion == ".tif" || fileExtenSion == ".tiff")
                                             {
-                                                fileName = Path.ChangeExtension(fileName, ".jpeg");
+                                                byte[] buffer = new byte[fileStream.Length];
+                                                //Get the complete folder path and store the file inside it.  
+
+                                                if (fileExtenSion == ".tif" || fileExtenSion == ".tiff")
+                                                {
+                                                    fileName = Path.ChangeExtension(fileName, ".jpeg");
+                                                }
+
+                                                fileStream.Read(buffer, 0, buffer.Length);
+
+                                                MemoryStream ms = new MemoryStream(buffer, true);
+
+                                                Image newImage = Image.FromStream(ms);
+                                                var width = newImage.Width;
+                                                var height = newImage.Height;
+
+                                                System.IO.Stream stream = new System.IO.MemoryStream();
+
+                                                using (MagickImage magickImage = new MagickImage(buffer))
+                                                {
+                                                    magickImage.Quality = 10;
+                                                    magickImage.Resize(width, height);
+                                                    magickImage.Format = MagickFormat.Jpeg;
+                                                    magickImage.Write(stream);
+                                                }
+
+                                                key = FileGUID.ToString() + fileName;
+                                                transactionType = AppSettingsUtil.UNCATEGORIZED_INVOICE;
+
+                                                string imageName = fileName;
+                                                string sourceObjectKey = fileName;
+                                                FileGUID = fileName;
+                                                Name = key;
+
+                                                // Upload Image to Cloud
+                                                amazonS3.UploadImagesToS3ByTransferUtil(transactionType, clientId, imageName, sourceObjectKey, key, stream);
+                                                var transactionTypeforScannedInvoice = '"' + AppSettingsUtil.UNCATEGORIZED_INVOICE + '"';
+                                                var invoiceStatus = (int)AppSettingsUtil.SCANNEDINVOICE_STATUS.Pending;
+                                                var fileGuid = '"' + FileGUID + '"';
+                                                var guidName = '"' + Name + '"';
+                                                var q = "INSERT INTO scannedinvoice(GUID,FileGuid,ScannedDate,TransactionType,IsUploadedFromApp,Status) Values(" + guidName + "," + fileGuid + "," + CreateDate + "," + transactionTypeforScannedInvoice + "," + "false" + "," + invoiceStatus + "); ";
+                                                RunQueryClientDatabase(q);
+                                                UploadedImageCount++;
                                             }
-
-                                            fileStream.Read(buffer, 0, buffer.Length);
-
-                                            MemoryStream ms = new MemoryStream(buffer, true);
-
-                                            Image newImage = Image.FromStream(ms);
-                                            var width = newImage.Width;
-                                            var height = newImage.Height;
-
-                                            System.IO.Stream stream = new System.IO.MemoryStream();
-
-                                            using (MagickImage magickImage = new MagickImage(buffer))
-                                            {
-                                                magickImage.Quality = 10;
-                                                magickImage.Resize(width, height);
-                                                magickImage.Format = MagickFormat.Jpeg;
-                                                magickImage.Write(stream);
-                                            }
-
-
-                                            key = AppSettingsUtil.UploadImagesFileNamePrefix + Guid.NewGuid().ToString() + fileName;
-                                            transactionType = AppSettingsUtil.UNCATEGORIZED_INVOICE;
-
-                                            string imageName = fileName;
-                                            string sourceObjectKey = fileName;
-
-                                            // Upload Image to Cloud
-                                            amazonS3.UploadImagesToS3ByTransferUtil(transactionType, clientId, imageName, sourceObjectKey, key, stream);
-
-                                            UploadedFileCount++;
                                         }
                                         else
-                                            notUploadedFileCount++;
+                                            notUploadedImageCount++;
                                     }
                                 }
                                 catch (Exception ex)
@@ -700,19 +740,24 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
             {
                 Program.ErrorLogging(ex);
             }
+
+            if (UploadedImageCount >= 1)
+                return 1;
+            else
+                return 0;
         }
 
-        public static void UploadRecordImageInAWS(object clientID, object AccountId, string transferYear, string transferMonth)
+        public static int UploadRecordImageInAWS(object clientID, object AccountId, string Name, string FileGUID, string CreateDate, string transferYear, string transferMonth)
         {
             AmazonS3Util amazonS3 = new AmazonS3Util();
             int clientId;
             string key = "";
             string transactionType = "";
-            int UploadedFileCount = 0;
+            int UploadedImageCount = 0;
             int notUploadedFileCount = 0;
             clientId = (int)clientID;
             object VatNumber;
-            int AccountIdForImageUpload = (int)AccountId;
+            object AccountIdForImageUpload = AccountId;
 
             try
             {
@@ -737,53 +782,64 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
                                     for (int i = 0; i < Files.Count; i++)
                                     {
                                         string fileName;
-
+                                        string nameWithoutExtension = Name.Replace(".tif", "");
                                         fileName = Path.GetFileName(Files[i]);
+                                        string fileNameWithoutExtension = '"' + Path.GetFileNameWithoutExtension(Files[i]) + '"';
 
-                                        //Get the file Extension
-                                        string fileExtenSion = Path.GetExtension(fileName);
-
-                                        FileStream fileStream = new FileStream(Files[i], FileMode.Open, FileAccess.Read);
-
-                                        if (fileExtenSion == ".jpeg" || fileExtenSion == ".jpg" || fileExtenSion == ".tif" || fileExtenSion == ".tiff")
+                                        if (fileNameWithoutExtension.Equals(nameWithoutExtension))
                                         {
-                                            byte[] buffer = new byte[fileStream.Length];
-                                            //Get the complete folder path and store the file inside it.  
 
-                                            if (fileExtenSion == ".tif" || fileExtenSion == ".tiff")
+                                            //Get the file Extension
+                                            string fileExtenSion = Path.GetExtension(fileName);
+
+                                            FileStream fileStream = new FileStream(Files[i], FileMode.Open, FileAccess.Read);
+
+                                            if (fileExtenSion == ".jpeg" || fileExtenSion == ".jpg" || fileExtenSion == ".tif" || fileExtenSion == ".tiff")
                                             {
-                                                fileName = Path.ChangeExtension(fileName, ".jpeg");
+                                                byte[] buffer = new byte[fileStream.Length];
+                                                //Get the complete folder path and store the file inside it.  
+
+                                                if (fileExtenSion == ".tif" || fileExtenSion == ".tiff")
+                                                {
+                                                    fileName = Path.ChangeExtension(fileName, ".jpeg");
+                                                }
+
+                                                fileStream.Read(buffer, 0, buffer.Length);
+
+                                                MemoryStream ms = new MemoryStream(buffer, true);
+
+                                                Image newImage = Image.FromStream(ms);
+                                                var width = newImage.Width;
+                                                var height = newImage.Height;
+
+                                                System.IO.Stream stream = new System.IO.MemoryStream();
+
+                                                using (MagickImage magickImage = new MagickImage(buffer))
+                                                {
+                                                    magickImage.Quality = 10;
+                                                    magickImage.Resize(width, height);
+                                                    magickImage.Format = MagickFormat.Jpeg;
+                                                    magickImage.Write(stream);
+                                                }
+
+                                                key = FileGUID.ToString() + fileName;
+                                                transactionType = AppSettingsUtil.RECORD_TRANSACTION_TYPE_RECORD;
+
+                                                string imageName = fileName;
+                                                string sourceObjectKey = fileName;
+                                                FileGUID = fileName;
+                                                Name = key;
+
+                                                // Upload Image to Cloud
+                                                amazonS3.UploadRecordAndBankStatementImagesToS3ByTransferUtil(transactionType, clientId, imageName, sourceObjectKey, key, stream, transferYear, transferMonth);
+                                                var transactionTypeforRecord = '"' + AppSettingsUtil.RECORD_TRANSACTION_TYPE_RECORD + '"';
+                                                var invoiceStatus = (int)AppSettingsUtil.SCANNEDINVOICE_STATUS.Pending;
+                                                var fileGuid = '"' + FileGUID + '"';
+                                                var guidName = '"' + Name + '"';
+                                                var q = "INSERT INTO record(GUID,FileGuid,TransfreDate,TransactionType,TransferYear,TransferMonth,Status) Values(" + guidName + "," + fileGuid + "," + CreateDate + "," + transactionTypeforRecord + "," + transferYear + "," + transferMonth + "," + invoiceStatus + "); ";
+                                                RunQueryClientDatabase(q);
+                                                UploadedImageCount++;
                                             }
-
-                                            fileStream.Read(buffer, 0, buffer.Length);
-
-                                            MemoryStream ms = new MemoryStream(buffer, true);
-
-                                            Image newImage = Image.FromStream(ms);
-                                            var width = newImage.Width;
-                                            var height = newImage.Height;
-
-                                            System.IO.Stream stream = new System.IO.MemoryStream();
-
-                                            using (MagickImage magickImage = new MagickImage(buffer))
-                                            {
-                                                magickImage.Quality = 10;
-                                                magickImage.Resize(width, height);
-                                                magickImage.Format = MagickFormat.Jpeg;
-                                                magickImage.Write(stream);
-                                            }
-
-
-                                            key = AppSettingsUtil.UploadImagesFileNamePrefix + Guid.NewGuid().ToString() + fileName;
-                                            transactionType = AppSettingsUtil.RECORD_TRANSACTION_TYPE_RECORD;
-
-                                            string imageName = fileName;
-                                            string sourceObjectKey = fileName;
-
-                                            // Upload Image to Cloud
-                                            amazonS3.UploadRecordAndBankStatementImagesToS3ByTransferUtil(transactionType, clientId, imageName, sourceObjectKey, key, stream, transferYear, transferMonth);
-
-                                            UploadedFileCount++;
                                         }
                                         else
                                             notUploadedFileCount++;
@@ -803,19 +859,24 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
             {
                 Program.ErrorLogging(ex);
             }
+
+            if (UploadedImageCount >= 1)
+                return 1;
+            else
+                return 0;
         }
 
-        public static void UploadBankStatementImageInAWS(object clientID, object AccountId, string transferYear, string transferMonth)
+        public static int UploadBankStatementImageInAWS(object clientID, object AccountId, string Name, string FileGUID, string CreateDate, string transferYear, string transferMonth)
         {
             AmazonS3Util amazonS3 = new AmazonS3Util();
             int clientId;
             string key = "";
             string transactionType = "";
-            int UploadedFileCount = 0;
+            int UploadedImageCount = 0;
             int notUploadedFileCount = 0;
             clientId = (int)clientID;
             object VatNumber;
-            int AccountIdForImageUpload = (int)AccountId;
+            object AccountIdForImageUpload = AccountId;
 
             try
             {
@@ -840,53 +901,64 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
                                     for (int i = 0; i < Files.Count; i++)
                                     {
                                         string fileName;
-
+                                        string nameWithoutExtension = Name.Replace(".tif", "");
                                         fileName = Path.GetFileName(Files[i]);
+                                        string fileNameWithoutExtension = '"' + Path.GetFileNameWithoutExtension(Files[i]) + '"';
 
-                                        //Get the file Extension
-                                        string fileExtenSion = Path.GetExtension(fileName);
-
-                                        FileStream fileStream = new FileStream(Files[i], FileMode.Open, FileAccess.Read);
-
-                                        if (fileExtenSion == ".jpeg" || fileExtenSion == ".jpg" || fileExtenSion == ".tif" || fileExtenSion == ".tiff")
+                                        if (fileNameWithoutExtension.Equals(nameWithoutExtension))
                                         {
-                                            byte[] buffer = new byte[fileStream.Length];
-                                            //Get the complete folder path and store the file inside it.  
 
-                                            if (fileExtenSion == ".tif" || fileExtenSion == ".tiff")
+                                            //Get the file Extension
+                                            string fileExtenSion = Path.GetExtension(fileName);
+
+                                            FileStream fileStream = new FileStream(Files[i], FileMode.Open, FileAccess.Read);
+
+                                            if (fileExtenSion == ".jpeg" || fileExtenSion == ".jpg" || fileExtenSion == ".tif" || fileExtenSion == ".tiff")
                                             {
-                                                fileName = Path.ChangeExtension(fileName, ".jpeg");
+                                                byte[] buffer = new byte[fileStream.Length];
+                                                //Get the complete folder path and store the file inside it.  
+
+                                                if (fileExtenSion == ".tif" || fileExtenSion == ".tiff")
+                                                {
+                                                    fileName = Path.ChangeExtension(fileName, ".jpeg");
+                                                }
+
+                                                fileStream.Read(buffer, 0, buffer.Length);
+
+                                                MemoryStream ms = new MemoryStream(buffer, true);
+
+                                                Image newImage = Image.FromStream(ms);
+                                                var width = newImage.Width;
+                                                var height = newImage.Height;
+
+                                                System.IO.Stream stream = new System.IO.MemoryStream();
+
+                                                using (MagickImage magickImage = new MagickImage(buffer))
+                                                {
+                                                    magickImage.Quality = 10;
+                                                    magickImage.Resize(width, height);
+                                                    magickImage.Format = MagickFormat.Jpeg;
+                                                    magickImage.Write(stream);
+                                                }
+
+                                                key = FileGUID.ToString() + fileName;
+                                                transactionType = AppSettingsUtil.RECORD_TRANSACTION_TYPE_BANKSTATEMENT;
+
+                                                string imageName = fileName;
+                                                string sourceObjectKey = fileName;
+                                                FileGUID = fileName;
+                                                Name = key;
+
+                                                // Upload Image to Cloud
+                                                amazonS3.UploadRecordAndBankStatementImagesToS3ByTransferUtil(transactionType, clientId, imageName, sourceObjectKey, key, stream, transferYear, transferMonth);
+                                                var transactionTypeforBankStatement = '"' + AppSettingsUtil.RECORD_TRANSACTION_TYPE_BANKSTATEMENT + '"';
+                                                var invoiceStatus = (int)AppSettingsUtil.SCANNEDINVOICE_STATUS.Pending;
+                                                var fileGuid = '"' + FileGUID + '"';
+                                                var guidName = '"' + Name + '"';
+                                                var q = "INSERT INTO record(GUID,FileGuid,TransfreDate,TransactionType,TransferYear,TransferMonth,Status) Values(" + guidName + "," + fileGuid + "," + CreateDate + "," + transactionTypeforBankStatement + "," + transferYear + "," + transferMonth + "," + invoiceStatus + "); ";
+                                                RunQueryClientDatabase(q);
+                                                UploadedImageCount++;
                                             }
-
-                                            fileStream.Read(buffer, 0, buffer.Length);
-
-                                            MemoryStream ms = new MemoryStream(buffer, true);
-
-                                            Image newImage = Image.FromStream(ms);
-                                            var width = newImage.Width;
-                                            var height = newImage.Height;
-
-                                            System.IO.Stream stream = new System.IO.MemoryStream();
-
-                                            using (MagickImage magickImage = new MagickImage(buffer))
-                                            {
-                                                magickImage.Quality = 10;
-                                                magickImage.Resize(width, height);
-                                                magickImage.Format = MagickFormat.Jpeg;
-                                                magickImage.Write(stream);
-                                            }
-
-
-                                            key = AppSettingsUtil.UploadImagesFileNamePrefix + Guid.NewGuid().ToString() + fileName;
-                                            transactionType = AppSettingsUtil.RECORD_TRANSACTION_TYPE_BANKSTATEMENT;
-
-                                            string imageName = fileName;
-                                            string sourceObjectKey = fileName;
-
-                                            // Upload Image to Cloud
-                                            amazonS3.UploadRecordAndBankStatementImagesToS3ByTransferUtil(transactionType, clientId, imageName, sourceObjectKey, key, stream, transferYear, transferMonth);
-
-                                            UploadedFileCount++;
                                         }
                                         else
                                             notUploadedFileCount++;
@@ -906,6 +978,11 @@ namespace DataMigrationUtility.DataMigrationUtilityCodes
             {
                 Program.ErrorLogging(ex);
             }
+
+            if (UploadedImageCount >= 1)
+                return 1;
+            else
+                return 0;
         }
 
         private static void RunQueryClientDatabase(string query)

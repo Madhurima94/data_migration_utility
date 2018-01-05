@@ -17,9 +17,9 @@ namespace DataMigrationUtility.Utility
         //private string bucketName = ConfigurationManager.AppSettings["BucketName"];
         #region "Temporory codde will move to app config or shared url"
 
-        private string bucketName = "web-act-scans";
-        private string awsAccessKeyId = "AKIAIWKFXAD4WUUJQENQ";
-        private string awsSecretAccessKey = "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";
+        private string bucketName = "vatscanplus";
+        private string awsAccessKeyId = "AKIAIBN3XVAYNL5G5UOQ";
+        private string awsSecretAccessKey = "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";
 
         #endregion
 

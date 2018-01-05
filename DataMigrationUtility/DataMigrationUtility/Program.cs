@@ -50,8 +50,8 @@ namespace DataMigrationUtility
             //DataMigrationUtilityCodes.TemporaryFuelScaleChargeProfileIdAssociation.InsertDataTemporaryTable();
             //DataMigrationUtilityCodes.FuelScaleChargeTablesDataMigration.FuelScaleChargeDetailsDataMigration();
 
-            //DataMigrationUtilityCodes.AccountTablesDataMigration.AccountDocumentTableDataMigration();
-            //DataMigrationUtilityCodes.AccountTablesDataMigration.AccountDocumentTableDataMigrationForRecordTable();
+            // DataMigrationUtilityCodes.AccountTablesDataMigration.AccountDocumentTableDataMigration();
+             //DataMigrationUtilityCodes.AccountTablesDataMigration.AccountDocumentTableDataMigrationForRecordTable();
             //DataMigrationUtilityCodes.AccountTablesDataMigration.AccountDocumentTableBankStatementDataMigrationForRecordTable();
 
             //DataMigrationUtilityCodes.DropTemporaryCustomerSupplierTables.DropTemporaryCustomerAndSupplierClientTables();
@@ -60,7 +60,7 @@ namespace DataMigrationUtility
             //RunQuery(dropTableQuery);
             //var dropTemporaryTableQuery = "DROP TABLE IF EXISTS `master_client`.`temporaryoldnewclientidsassociation`";
             //RunQuery(dropTemporaryTableQuery);
-            DataMigrationUtility.DataMigrationUtilityCodes.ClientDatabaseCreation.CreateClientFolderForAWS(1);
+           
         }
 
         private static void RunQuery(string query)
@@ -85,7 +85,7 @@ namespace DataMigrationUtility
 
         public static void ErrorLogging(Exception ex)
         {
-            string strPath = @"D:\Madhurima\Exception\Log.txt";
+            string strPath = @"D:\Madhurima\Exception\ExceptionLog.txt";
             if (!File.Exists(strPath))
             {
                 File.Create(strPath).Dispose();
@@ -104,7 +104,7 @@ namespace DataMigrationUtility
 
         public static void ErrorLoggingForQueries(Exception ex, string query)
         {
-            string strPath = @"D:\Madhurima\Exception\Log.txt";
+            string strPath = @"D:\Madhurima\Exception\QueryLog.txt";
             if (!File.Exists(strPath))
             {
                 File.Create(strPath).Dispose();
@@ -116,6 +116,24 @@ namespace DataMigrationUtility
                 sw.WriteLine("Error Message: " + ex.Message);
                 sw.WriteLine("Stack Trace: " + ex.StackTrace);
                 sw.WriteLine("Query throwing Exception: " + query);
+                sw.WriteLine("===========End============= " + DateTime.Now);
+                sw.WriteLine();
+                sw.WriteLine();
+            }
+        }
+
+        public static void LoggingForImagesNotPresentInFolder(string message)
+        {
+            string strPath = @"D:\Madhurima\Exception\ImageLog.txt";
+            if (!File.Exists(strPath))
+            {
+                File.Create(strPath).Dispose();
+            }
+            using (StreamWriter sw = File.AppendText(strPath))
+            {
+                sw.WriteLine("============= Logging ===========");
+                sw.WriteLine("===========Start============= " + DateTime.Now);
+                sw.WriteLine("Error Message: " + message);
                 sw.WriteLine("===========End============= " + DateTime.Now);
                 sw.WriteLine();
                 sw.WriteLine();
